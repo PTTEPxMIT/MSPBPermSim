@@ -1,63 +1,52 @@
 import numpy as np
-import h_transport_materials as htm
 import festim as F
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-# obtain material properties
-# inconel
-substrate_D = htm.diffusivities.filter(material="inconel_600").filter(
-    author="kishimoto"
-)[0]
-substrate_D_0 = substrate_D.pre_exp.magnitude
-substrate_E_D = substrate_D.act_energy.magnitude
-
-substrate_S = htm.solubilities.filter(material="inconel_600").filter(
-    author="kishimoto"
-)[0]
-substrate_S_0 = substrate_S.pre_exp.magnitude
-substrate_E_S = substrate_S.act_energy.magnitude
-
-substrate_recomb = htm.recombination_coeffs.filter(material="inconel_600").filter(
-    author="rota"
-)[0]
-substrate_Kr_0 = substrate_recomb.pre_exp.magnitude
-substrate_E_Kr = substrate_recomb.act_energy.magnitude
-
-substrate_diss = htm.dissociation_coeffs.filter(material="inconel_600").filter(
-    author="rota"
-)[0]
-substrate_Kd_0 = substrate_diss.pre_exp.magnitude
-substrate_E_Kd = substrate_diss.act_energy.magnitude
+from festim_sim import (
+    substrate_D_0,
+    substrate_E_D,
+    substrate_S_0,
+    substrate_E_S,
+    substrate_Kd_0,
+    substrate_E_Kd,
+)
 
 k_b = F.k_B
-T = 600
-kd = substrate_Kd_0 * np.exp(substrate_E_Kd / (k_b * T))
-ks = substrate_S_0 * np.exp(substrate_E_S / (k_b * T))
-D = substrate_D_0 * np.exp(substrate_E_D / (k_b * T))
-e = 5e-04
-P = 100
 
 
-def W_testing(P=100, e=5e-04, T=600):
-
-    T = 600
-    kd = substrate_Kd_0 * np.exp(substrate_E_Kd / (k_b * T))
-    ks = substrate_S_0 * np.exp(substrate_E_S / (k_b * T))
-    D = substrate_D_0 * np.exp(substrate_E_D / (k_b * T))
-
-    return (kd * (P**0.5) * e) / (D * ks)
+def W_number(K_d, thickness, pressure, diffusivity, solubility):
+    return (K_d * (pressure**0.5) * thickness) / (diffusivity * solubility)
 
 
-P_testing = np.geomspace(1e-08, 1e08, num=100)
-e_testing = np.geomspace(1e-05, 1, num=100)
-T_testing = np.linspace(300, 900, num=100)
+default_P = 1e4  # Pa
+default_e = 974e-6  # m
+default_T = 300 + 273.15  # K
 
-W_test_P = W_testing(P=P_testing)
-W_test_e = W_testing(e_testing)
-W_test_T = W_testing(T_testing)
+
+def W_testing(P=default_P, e=default_e, T=default_T):
+
+    return W_number(
+        K_d=substrate_Kd_0 * np.exp(-substrate_E_Kd / (k_b * T)),
+        thickness=e,
+        pressure=P,
+        diffusivity=substrate_D_0 * np.exp(-substrate_E_D / (k_b * T)),
+        solubility=substrate_S_0 * np.exp(-substrate_E_S / (k_b * T)),
+    )
+
+
+P_testing = np.geomspace(
+    1e2, 1e05, num=100
+)  # Pa  range taken from https://doi.org/10.1016/j.nme.2021.101062 Section 2.5
+e_testing = np.geomspace(
+    945e-6, 1e-3, num=100
+)  # m minimum value taken from https://doi.org/10.1016/j.nme.2021.101062 Section 2.5
+T_testing = np.linspace(200, 400, num=100) + 273.15  # K
+
 
 plt.figure()
+plt.title(f"T = {default_T} K, e = {default_e} m")
+W_test_P = W_testing(P=P_testing)
 plt.plot(P_testing, W_test_P, color="black")
 plt.xscale("log")
 plt.yscale("log")
@@ -69,6 +58,8 @@ ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 
 plt.figure()
+plt.title(f"T = {default_T} K, P = {default_P} Pa")
+W_test_e = W_testing(e=e_testing)
 plt.plot(e_testing, W_test_e, color="black")
 plt.xscale("log")
 plt.yscale("log")
@@ -80,6 +71,8 @@ ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 
 plt.figure()
+plt.title(f"P = {default_P} Pa, e = {default_e} m")
+W_test_T = W_testing(T=T_testing)
 plt.plot(T_testing, W_test_T, color="black")
 plt.ylabel("W")
 plt.xlabel("Temperature (K)")
@@ -89,10 +82,10 @@ ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 
 X, Y = np.meshgrid(P_testing, e_testing)
-Z = W_testing(X, Y)
+Z = W_testing(P=X, e=Y)
 
 plt.figure(figsize=(8, 6))
-
+plt.title(f"T = {default_T} K")
 contour = plt.contourf(
     X,
     Y,
