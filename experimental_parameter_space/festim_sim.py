@@ -10,12 +10,6 @@ substrate_D = htm.diffusivities.filter(material="inconel_600").filter(
 substrate_D_0 = substrate_D.pre_exp.magnitude
 substrate_E_D = substrate_D.act_energy.magnitude
 
-# substrate_S = htm.solubilities.filter(material="inconel_600").filter(
-#     author="kishimoto"
-# )[0]
-# substrate_S_0 = substrate_S.pre_exp.magnitude
-# substrate_E_S = substrate_S.act_energy.magnitude
-
 substrate_recomb = htm.recombination_coeffs.filter(material="inconel_600").filter(
     author="rota"
 )[0]
@@ -29,11 +23,6 @@ substrate_Kd_0 = substrate_diss.pre_exp.magnitude
 substrate_E_Kd = substrate_diss.act_energy.magnitude
 
 
-# Ks = substrate_S_0 * np.exp(-substrate_E_S / (F.k_B * 500))
-# Kr = substrate_Kr_0 * np.exp(-substrate_E_Kr / (F.k_B * 500))
-# Kd = substrate_Kd_0 * np.exp(-substrate_E_Kd / (F.k_B * 500))
-
-
 substrate_S = htm.Solubility(
     S_0=(substrate_diss.pre_exp / substrate_recomb.pre_exp) ** 0.5,
     E_S=(0.5 * (substrate_diss.act_energy - substrate_recomb.act_energy)),
@@ -41,11 +30,6 @@ substrate_S = htm.Solubility(
 substrate_S_0 = substrate_S.pre_exp.magnitude
 substrate_E_S = substrate_S.act_energy.magnitude
 
-# print(substrate_S.value(T=500))
-# alt = (Kd / Kr) ** 0.5
-# print(alt)
-
-# quit()
 
 # # alumina
 barrier_D = htm.diffusivities.filter(material="alumina").filter(author="serra")[0]
